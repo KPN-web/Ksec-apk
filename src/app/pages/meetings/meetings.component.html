@@ -1,0 +1,48 @@
+﻿<div class="page-header">
+  <div>
+    <h1>Mes réunions</h1>
+    <p class="muted">Préparez vos réunions puis générez vos documents.</p>
+  </div>
+  <a class="btn btn-primary" routerLink="/meetings/new">+ Nouvelle réunion</a>
+</div>
+
+@if (error()) {
+  <div class="alert alert-error">
+    {{ error() }}
+    <button class="btn btn-link" type="button" (click)="load()">Réessayer</button>
+  </div>
+}
+
+@if (loading()) {
+  <p class="muted">Chargement…</p>
+} @else if (!error() && meetings().length === 0) {
+  <div class="card empty">
+    <h2>Aucune réunion pour le moment</h2>
+    <p class="muted">Créez votre première réunion en renseignant son thème et ses points à aborder.</p>
+    <a class="btn btn-primary" routerLink="/meetings/new">Créer une réunion</a>
+  </div>
+} @else {
+  <div class="meeting-list">
+    @for (m of meetings(); track m.id) {
+      <a class="card meeting-card" [routerLink]="['/meetings', m.id]">
+        <div class="meeting-card-top">
+          <h2>{{ m.theme }}</h2>
+          <span class="badge badge-{{ m.status.toLowerCase() }}">{{ statusLabels[m.status] }}</span>
+        </div>
+        <p class="muted icon-title">
+          <svg class="icon icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          {{ m.meetingDate | date: "EEEE d MMMM y, HH:mm" }}
+          @if (m.location) { · {{ m.location }} }
+        </p>
+        <p class="meta">
+          {{ m.agendaItems.length }} point(s) à l'ordre du jour · {{ m.participants.length }} participant(s)
+        </p>
+      </a>
+    }
+  </div>
+}

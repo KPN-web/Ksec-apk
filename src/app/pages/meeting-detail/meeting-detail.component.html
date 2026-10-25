@@ -1,0 +1,173 @@
+﻿<p><a routerLink="/meetings">← Retour aux réunions</a></p>
+
+@if (loading()) {
+<p class="muted">Chargement…</p>
+} @else if (error() && !meeting()) {
+<div class="alert alert-error">{{ error() }}</div>
+} @else if (meeting(); as m) {
+@if (error()) {
+<div class="alert alert-error">{{ error() }}</div>
+}
+
+<div class="page-header">
+  <div>
+    <h1>{{ m.theme }}</h1>
+    <p class="muted">
+      {{ m.meetingDate | date: "EEEE d MMMM y, HH:mm" }}
+      @if (m.location) { · {{ m.location }} }
+      · <span class="badge badge-{{ m.status.toLowerCase() }}">{{ statusLabels[m.status] }}</span>
+    </p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-secondary" [routerLink]="['/meetings', m.id, 'edit']">Modifier</a>
+    <button class="btn btn-danger" type="button" (click)="delete()">Supprimer</button>
+  </div>
+</div>
+
+<section class="card">
+  <h2>Points à l'ordre du jour</h2>
+  @if (m.agendaItems.length === 0) {
+  <p class="muted">Aucun point renseigné.</p>
+  } @else {
+  <ol class="agenda">
+    @for (item of m.agendaItems; track $index) {
+    <li>
+      <strong>{{ item.title }}</strong>
+      @if (item.description) { <p class="muted">{{ item.description }}</p> }
+    </li>
+    }
+  </ol>
+  }
+</section>
+
+<section class="card">
+  <h2>Participants</h2>
+  @if (m.participants.length === 0) {
+  <p class="muted">Aucun participant renseigné.</p>
+  } @else {
+  <ul class="participants">
+    @for (p of m.participants; track $index) {
+    <li>
+      <strong>{{ p.name }}</strong>
+      @if (p.jobTitle) { <span class="muted"> — {{ p.jobTitle }}</span> }
+      <span class="badge" [class.badge-present]="p.present" [class.badge-absent]="!p.present">
+              {{ p.present ? "Présent" : "Absent" }}
+            </span>
+    </li>
+    }
+  </ul>
+  }
+</section>
+
+@if (m.notes) {
+<section class="card">
+  <h2>Notes</h2>
+  <p class="pre">{{ m.notes }}</p>
+</section>
+}
+
+<section class="card">
+  <h2 class="icon-title">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+      <line x1="12" y1="19" x2="12" y2="23"></line>
+      <line x1="8" y1="23" x2="16" y2="23"></line>
+    </svg>
+    Enregistrement audio
+  </h2>
+  <p class="muted">Enregistrez un extrait de la réunion pour enrichir la génération des documents.</p>
+
+  @if (!recording()) {
+  <div class="actions">
+    <button class="btn btn-secondary" type="button" [disabled]="transcribing()" (click)="startRecording()">
+      🎙 Démarrer l'enregistrement
+    </button>
+  </div>
+  } @else {
+  <div class="actions">
+    <span class="badge">● {{ formattedDuration() }}</span>
+    <button class="btn btn-secondary" type="button" (click)="stopRecording()">Arrêter et transcrire</button>
+    <button class="btn btn-danger" type="button" (click)="cancelRecording()">Annuler</button>
+  </div>
+  }
+
+  @if (transcribing()) {
+  <p class="muted">Transcription en cours, cela peut prendre jusqu'à une minute…</p>
+  }
+  @if (transcriptError()) {
+  <div class="alert alert-error">{{ transcriptError() }}</div>
+  }
+  @if (m.transcript) {
+  <p class="muted" style="margin-top: 12px;">Transcription enregistrée :</p>
+  <p class="pre">{{ m.transcript }}</p>
+  }
+</section>
+
+<section class="card">
+  <h2 class="icon-title">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+      <polyline points="14 2 14 8 20 8"></polyline>
+      <line x1="8" y1="13" x2="16" y2="13"></line>
+      <line x1="8" y1="17" x2="16" y2="17"></line>
+      <line x1="8" y1="9" x2="10" y2="9"></line>
+    </svg>
+    Générer un document
+  </h2>
+  <p class="muted">L'IA rédige le document à partir des informations de la réunion.</p>
+  <div class="actions">
+    @for (d of documentTypes; track d.type) {
+    <button class="btn btn-secondary" type="button"
+            [disabled]="generating() !== null"
+            (click)="generate(d.type, d.label)">
+      {{ generating() === d.label ? "Génération…" : d.label }}
+    </button>
+    }
+  </div>
+
+  @if (generating()) {
+  <p class="muted">Rédaction en cours, cela peut prendre jusqu'à une minute…</p>
+  }
+  @if (generationError()) {
+  <div class="alert alert-error">{{ generationError() }}</div>
+  }
+</section>
+
+@if (documents().length > 0) {
+<section class="card">
+  <h2>Documents générés</h2>
+  <ul class="participants">
+    @for (d of documents(); track d.id) {
+    <li>
+      <svg class="icon icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+      </svg>
+      <strong>{{ labelOf(d.type) }}</strong>
+      <span class="muted"> — {{ d.createdAt | date: "d MMM y, HH:mm" }}</span>
+      <span class="actions">
+              <button class="btn btn-secondary" type="button" (click)="show(d)">Afficher</button>
+              <button class="btn btn-secondary" type="button" [disabled]="exporting() === d.id" (click)="download(d)">{{ exporting() === d.id ? "Export…" : "Exporter" }}</button>
+              <button class="btn btn-danger" type="button" (click)="deleteDocument(d)">Supprimer</button>
+            </span>
+    </li>
+    }
+  </ul>
+</section>
+}
+
+@if (selected(); as doc) {
+<section class="card">
+  <div class="page-header">
+    <h2>{{ labelOf(doc.type) }}</h2>
+    <div class="actions">
+      <button class="btn btn-secondary" type="button" (click)="copy()">
+        {{ copied() ? "Copié ✓" : "Copier" }}
+      </button>
+    </div>
+  </div>
+  <div class="markdown-content" [innerHTML]="doc.content | markdown"></div>
+</section>
+}
+}

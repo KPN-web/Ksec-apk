@@ -1,0 +1,116 @@
+﻿<div class="page-header">
+  <div>
+    <h1>{{ meetingId() ? "Modifier la réunion" : "Nouvelle réunion" }}</h1>
+    <p class="muted">Renseignez le thème et les points à aborder. L'IA s'en servira pour rédiger vos documents.</p>
+  </div>
+</div>
+
+@if (loading()) {
+  <p class="muted">Chargement…</p>
+} @else {
+  @if (error()) {
+    <div class="alert alert-error">{{ error() }}</div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <section class="card">
+      <h2>Informations générales</h2>
+
+      <div class="field">
+        <label for="theme">Thème de la réunion *</label>
+        <input id="theme" type="text" formControlName="theme" placeholder="Ex. : Réunion de coordination mensuelle" />
+        @if (form.controls.theme.touched && form.controls.theme.invalid) {
+          <span class="field-error">Le thème est obligatoire.</span>
+        }
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="meetingDate">Date et heure *</label>
+          <input id="meetingDate" type="datetime-local" formControlName="meetingDate" />
+          @if (form.controls.meetingDate.touched && form.controls.meetingDate.invalid) {
+            <span class="field-error">La date est obligatoire.</span>
+          }
+        </div>
+        <div class="field">
+          <label for="location">Lieu</label>
+          <input id="location" type="text" formControlName="location" placeholder="Ex. : Salle de conférence" />
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-title">
+        <h2>Points à l'ordre du jour</h2>
+        <button class="btn btn-secondary btn-sm" type="button" (click)="addAgendaItem()">+ Ajouter un point</button>
+      </div>
+
+      <div formArrayName="agendaItems">
+        @for (item of agendaItems.controls; track item; let i = $index) {
+          <div class="array-row" [formGroupName]="i">
+            <span class="row-number">{{ i + 1 }}</span>
+            <div class="array-row-fields">
+              <input type="text" formControlName="title" placeholder="Titre du point" aria-label="Titre du point" />
+              <textarea rows="2" formControlName="description" placeholder="Précisions (facultatif)"
+                        aria-label="Précisions"></textarea>
+              @if (item.controls.title.touched && item.controls.title.invalid) {
+                <span class="field-error">Le titre du point est obligatoire.</span>
+              }
+            </div>
+            <button class="btn btn-icon" type="button" (click)="removeAgendaItem(i)"
+                    aria-label="Supprimer ce point">✕</button>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-title">
+        <h2>Participants</h2>
+        <button class="btn btn-secondary btn-sm" type="button" (click)="addParticipant()">+ Ajouter un participant</button>
+      </div>
+
+      @if (participants.length === 0) {
+        <p class="muted">Aucun participant ajouté.</p>
+      }
+
+      <div formArrayName="participants">
+        @for (p of participants.controls; track p; let i = $index) {
+          <div class="array-row" [formGroupName]="i">
+            <span class="row-number">{{ i + 1 }}</span>
+            <div class="array-row-fields participant-fields">
+              <input type="text" formControlName="name" placeholder="Nom" aria-label="Nom du participant" />
+              <input type="text" formControlName="jobTitle" placeholder="Fonction" aria-label="Fonction" />
+              <label class="checkbox">
+                <input type="checkbox" formControlName="present" /> Présent
+              </label>
+              @if (p.controls.name.touched && p.controls.name.invalid) {
+                <span class="field-error">Le nom est obligatoire.</span>
+              }
+            </div>
+            <button class="btn btn-icon" type="button" (click)="removeParticipant(i)"
+                    aria-label="Supprimer ce participant">✕</button>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Notes de la réunion</h2>
+      <p class="muted">
+        Décisions prises, remarques importantes, chiffres… Plus vous en écrivez, plus le compte rendu sera fidèle.
+      </p>
+      <div class="field">
+        <textarea rows="6" formControlName="notes" aria-label="Notes de la réunion"></textarea>
+      </div>
+    </section>
+
+    <div class="form-actions">
+      <a class="btn btn-secondary" [routerLink]="meetingId() ? ['/meetings', meetingId()] : ['/meetings']">Annuler</a>
+      <button class="btn btn-primary" type="submit" [disabled]="saving()">
+        {{ saving() ? "Enregistrement…" : "Enregistrer" }}
+      </button>
+    </div>
+  </form>
+}
+

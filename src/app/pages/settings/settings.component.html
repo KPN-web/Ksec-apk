@@ -1,0 +1,34 @@
+﻿<div class="page-header">
+  <h1>Paramètres</h1>
+  <a class="btn btn-secondary" routerLink="/meetings">Retour</a>
+</div>
+
+<section class="card">
+  <h2>Intelligence artificielle (Gemini)</h2>
+  <p class="muted">
+    La clé reste enregistrée uniquement sur cet appareil. Créez-en une sur aistudio.google.com/apikey.
+  </p>
+
+  <label for="apiKey">Clé API Gemini</label>
+  <input
+    id="apiKey"
+    type="password"
+    autocomplete="off"
+    [value]="apiKey()"
+    (input)="apiKey.set($any($event.target).value)"
+  />
+
+  <label for="model">Modèle</label>
+  <input
+    id="model"
+    type="text"
+    [value]="model()"
+    (input)="model.set($any($event.target).value)"
+  />
+
+  <div class="actions">
+    <button class="btn btn-primary" type="button" (click)="save()">
+      {{ saved() ? "Enregistré ✓" : "Enregistrer" }}
+    </button>
+  </div>
+</section>

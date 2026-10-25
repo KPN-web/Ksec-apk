@@ -1,0 +1,15 @@
+﻿<div class="app-shell">
+  <header class="topbar">
+    <a class="brand" routerLink="/meetings">Ksec</a>
+    <div class="topbar-user">
+      <a class="btn btn-link" routerLink="/settings">Paramètres</a>
+    </div>
+  </header>
+  <main class="app-content">
+    <router-outlet />
+  </main>
+  <footer style="text-align:center; padding: 16px; font-size: 13px; display:flex; gap:14px; justify-content:center;">
+    <a routerLink="/legal" class="muted">CGU</a>
+    <a routerLink="/privacy" class="muted">Confidentialité</a>
+  </footer>
+</div>

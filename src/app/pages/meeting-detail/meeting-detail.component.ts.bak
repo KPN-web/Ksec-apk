@@ -1,0 +1,96 @@
+﻿import { DatePipe } from '@angular/common';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { errorMessage } from '../../core/http-error';
+import { MeetingService } from '../../core/meeting.service';
+import { Meeting, STATUS_LABELS } from '../../core/models';
+
+@Component({
+  selector: 'app-meeting-detail',
+  imports: [RouterLink, DatePipe],
+  templateUrl: './meeting-detail.component.html',
+})
+export class MeetingDetailComponent implements OnInit {
+  private readonly meetingService = inject(MeetingService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+
+  readonly meeting = signal<Meeting | null>(null);
+  readonly loading = signal(true);
+  readonly error = signal<string | null>(null);
+  readonly statusLabels = STATUS_LABELS;
+
+  // --- Génération de documents ---
+  readonly documentTypes = [
+    { type: 'compte rendu', label: 'Compte rendu' },
+    { type: 'lettre', label: 'Lettre' },
+    { type: 'rapport', label: 'Rapport' },
+    { type: 'tableau', label: 'Tableau' },
+  ];
+  readonly generating = signal<string | null>(null); // libellé en cours de génération
+  readonly generatedLabel = signal<string | null>(null); // libellé du document affiché
+  readonly generatedContent = signal<string | null>(null);
+  readonly generationError = signal<string | null>(null);
+  readonly copied = signal(false);
+
+  ngOnInit(): void {
+    const id = Number(this.route.snapshot.paramMap.get('id'));
+    this.meetingService.get(id).subscribe({
+      next: (meeting) => {
+        this.meeting.set(meeting);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.error.set(errorMessage(err));
+        this.loading.set(false);
+      },
+    });
+  }
+
+  generate(type: string, label: string): void {
+    const meeting = this.meeting();
+    if (!meeting || this.generating()) {
+      return;
+    }
+    this.generating.set(label);
+    this.generationError.set(null);
+    this.generatedContent.set(null);
+    this.copied.set(false);
+
+    this.meetingService.generateDocument(meeting.id, type).subscribe({
+      next: (res) => {
+        this.generatedLabel.set(label);
+        this.generatedContent.set(res.content);
+        this.generating.set(null);
+      },
+      error: (err) => {
+        this.generationError.set(errorMessage(err));
+        this.generating.set(null);
+      },
+    });
+  }
+
+  async copy(): Promise<void> {
+    const content = this.generatedContent();
+    if (!content) {
+      return;
+    }
+    await navigator.clipboard.writeText(content);
+    this.copied.set(true);
+    setTimeout(() => this.copied.set(false), 2000);
+  }
+
+  delete(): void {
+    const meeting = this.meeting();
+    if (
+      !meeting ||
+      !confirm(`Supprimer la réunion « ${meeting.theme} » ? Cette action est définitive.`)
+    ) {
+      return;
+    }
+    this.meetingService.delete(meeting.id).subscribe({
+      next: () => this.router.navigateByUrl('/meetings'),
+      error: (err) => this.error.set(errorMessage(err)),
+    });
+  }
+}
